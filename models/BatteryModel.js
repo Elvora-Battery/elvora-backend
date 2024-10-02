@@ -40,13 +40,22 @@ const Battery = db.define('battery', {
             key: 'id'
         }
     },
-    total_waktu:{
-        type: DataTypes.STRING,
+    remainingTime:{
+        type: DataTypes.INTEGER,
         // allowNull:false,
     },
     status_relay:{
         type: DataTypes.BOOLEAN,
         // allowNull:false,
+    },
+    distanceTravelled :{
+        type : DataTypes.FLOAT,
+    },
+    batteryPercentage :{
+        type : DataTypes.FLOAT,
+    },
+    chargingStatus : {
+        type : DataTypes.STRING
     }
 
 

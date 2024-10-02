@@ -33,5 +33,20 @@ const generateOtp = () => {
     return crypto.randomInt(100000, 999999).toString(); // Generate 6-digit OTP
 };
 
+const forgotPasswordEmail = async (email, otp) =>{
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Reset Your Password',
+        text: `Your Token code is ${otp}`
+    };
+    try {
+        await transporter.sendMail(mailOptions);
+    } catch (error) {
+        console.error('Error sending email:', error);
+        throw error;
+    }
+}
 
-export { sendOtpEmail, generateOtp };
+
+export { sendOtpEmail, generateOtp, forgotPasswordEmail };

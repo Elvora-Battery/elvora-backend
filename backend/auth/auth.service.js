@@ -3,10 +3,11 @@ import bcrypt from 'bcryptjs';
 import Users from '../../models/UserModel.js';
 
 const login = async (email, password)=>{
+    let userVerify;
     try {
         const user = await Users.findOne({
             where: { email },
-            attributes : ['id', 'email', 'name', 'password', 'otp_verify']
+            attributes : ['id', 'email', 'name', 'password', 'otp_verify','ktp_id']
         });
         if(!user){
             throw new Error("Invalid email or password");   
@@ -26,12 +27,17 @@ const login = async (email, password)=>{
             process.env.JWT_SECRET,
             {expiresIn: '23h'}
         );
+        if(user.ktp_id){
+            userVerify = true;
+        }else{
+            userVerify = false;
+        }
 
         const userResponse = {
             id: user.id,
             email: user.email,
             name: user.name,
-            verify : user.otp_verify
+            verify : userVerify
           };
         
         return {token, user : userResponse}

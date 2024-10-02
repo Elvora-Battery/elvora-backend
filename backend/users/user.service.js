@@ -4,7 +4,7 @@ import { Token } from "../../models/TokenModel.js";
 import Battery from "../../models/BatteryModel.js";
 import bcrypt from 'bcryptjs';
 import { Op } from 'sequelize';
-import { generateOtp, sendOtpEmail } from "../../config/emailService.js";
+import { generateOtp, sendOtpEmail, forgotPasswordEmail } from "../../config/emailService.js";
 
 
     const register= async(data, callBack)=>{
@@ -129,37 +129,58 @@ import { generateOtp, sendOtpEmail } from "../../config/emailService.js";
         }
     };
 
-    const dashboard = async (userId, res) =>{
+    const dashboard = async (userId) =>{
+        let battery, transaction,  token;
         try {
-            const user = await Users.findOne({
+            let user = await Users.findOne({
                 where :{ id : userId},
                 attributes : ['id', 'email', 'name']
             })
             if (!user) {
-                return res.status(200).json({ message: "User not found" });
+                user = {}
             }
-            const transaction = await RentTransaction.findOne({
+
+            const transactionDefault = await RentTransaction.findOne({
+                where :{user_id : userId, isDefault : true},
+                attributes : ['id','rent_type_id', 'battery_name', 'token_id']
+            });
+
+            transaction = await RentTransaction.findOne({
                 where :{user_id : userId, status :"Active"},
                 attributes : ['id','rent_type_id', 'battery_name', 'token_id']
             });
             // console.log("Token ID:", transaction.token_id);
-            if (!transaction) {
-                return res.status(200).json({ message: "There is no active subscription" });
+
+            if(transaction){
+                 token = await Token.findOne({
+                    where : { id : transaction.token_id},
+                    attributes : ['id', 'token']
+                })
+                if(token){
+                    battery = await Battery.findOne({
+                        where:{token_id : token.id}
+                    })
+                    if(!battery){
+                        battery = {}
+                    }
+                }
+                
+            }else{
+                transaction = {};
+                token = {};
+                battery = {}
             }
-            const token = await Token.findOne({
-                where : { id : transaction.token_id},
-                attributes : ['id', 'token']
-            })
-            const battery = await Battery.findOne({
-                where:{token_id : token.id}
-            })
-            if(!battery){
-                return res.status(200).json({ message: "There is no battery information" });
+            if(transactionDefault){
+                return {
+                    battery, transactionDefault, user
+                }
+            }else{
+                return {
+                    battery, transaction, user
+                };
+        
             }
-            return {
-                battery, transaction, user
-            };
-    
+            
     
         } catch (error) {
             console.error(error.message); // Log error for debugging
@@ -168,5 +189,53 @@ import { generateOtp, sendOtpEmail } from "../../config/emailService.js";
     
     }
 
-    export { register, resendOtp, verifyOtp, setPassword, updatePassword, dashboard} ;
+
+    const forgotPassword = async (email) =>{
+        try {
+            const user = await Users.findOne({
+                where :{email : email}
+            })
+            if(!user){
+                throw new Error("Email not found");
+            }
+            const otp_code= generateOtp();
+            user.otp_code = otp_code;
+            await user.save();
+            await forgotPasswordEmail(user.email, otp_code);
+        } catch (error) {
+            console.error(error.message); // Log error for debugging
+            throw error;
+        }
+    }
+
+    const resetPassword = async (token, newPassword, confirmPassword) =>{ 
+        try {
+            const user = await Users.findOne ({
+                where : {otp_code : token}
+            })
+            if(!user){
+                throw new Error("User not found");
+            }
+            if(user.otp_code !== token){
+                throw new Error('Invalid Token');
+            }
+
+            if(newPassword !== confirmPassword){
+                throw new Error('Password and Confirm Password do not match');
+            }
+            const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+            if (!newPassword.match(passwordRegex)){
+                throw new Error('Password must be at least 8 characters and include uppercase letter, lowercase letter, number, and special symbol');
+            }
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            user.password = hashedPassword;
+            await user.save();
+            
+        } catch (error) {
+            console.error(error.message); // Log error for debugging
+            throw error;
+        }
+    }
+
+    export { register, resendOtp, verifyOtp, setPassword, updatePassword, dashboard, forgotPassword, resetPassword} ;
 

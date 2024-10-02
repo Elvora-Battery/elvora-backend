@@ -52,6 +52,18 @@ const RentTransaction = db.define('rent_transactions', {
             model: 'tokens',
             key: 'id'
         }
+    },
+    battery_id:{
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+            model: 'battery',
+            key: 'id'
+        }
+    },
+    isDefault : {
+        type : DataTypes.BOOLEAN,
+        allowNull : true
     }
 
 },{

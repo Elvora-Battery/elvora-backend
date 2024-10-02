@@ -1,4 +1,4 @@
-import { createRentTransaction, getRentTransactionbyId, paidTransaction, getSubscriptions, getActiveRental, updateBatteryName, rentSummary } from "./rent_transaction.service.js";
+import { createRentTransaction, getRentTransactionbyId, paidTransaction, getSubscriptions, getActiveRental, updateBatteryName, rentSummary, createPaymentMidtrans, userActivity, defaultSubscription} from "./rent_transaction.service.js";
 
 const createRentTransactionController = async (req, res) =>{
     const userId = req.user.UserId; 
@@ -64,10 +64,10 @@ const paidTransactionController = async (req, res) =>{
 const getSubscriptionsController = async (req, res)=>{
     const userId = req.user.UserId; 
     try {
-        const subsciption = await getSubscriptions(userId);
+        const subscriptions = await getSubscriptions(userId);
         return res.status(200).json({
             success:1,
-            data : subsciption
+            data : subscriptions
         })
     } catch (error) {
         res.status(400).json({
@@ -109,4 +109,48 @@ const updateBatteryNameController = async (req, res)=>{
     
 }
 
-export { createRentTransactionController, getRentTransactionbyIdController, paidTransactionController, getSubscriptionsController, getActiveRentalController, updateBatteryNameController, rentSummaryController }
+const createPaymentMidtransController = async (req, res) =>{
+    const {transaction_id, totalAmount} = req.body;
+
+    try {
+        const paymentRespose = await createPaymentMidtrans(transaction_id, totalAmount);
+        res.status(200).json(paymentRespose);
+    } catch (error) {
+        res.status(400).json({
+            message: error.message,
+        });
+    }
+}
+
+const userActivityController = async (req, res) =>{
+    const userId = req.user.UserId; 
+    try {
+        const activity = await userActivity(userId);
+        return res.status(200).json({
+            success : 1,
+            data : activity
+        })
+    } catch (error) {
+        res.status(400).json({
+            message: error.message,
+        });
+    }
+}
+
+const defaultSubscriptionController = async (req, res) =>{
+    const id = req.body.rent_transaction_id;
+    const userId = req.user.UserId;
+    try {
+        const defaultSubs = await defaultSubscription (id, userId);
+        return res.status(200).json({
+            success : 1,
+            message : "Default subscription successfully changed"
+        })
+    } catch (error) {
+        res.status(400).json({
+            message: error.message,
+        });
+    }
+}
+
+export { createRentTransactionController, getRentTransactionbyIdController, paidTransactionController, getSubscriptionsController, getActiveRentalController, updateBatteryNameController, rentSummaryController, createPaymentMidtransController, userActivityController, defaultSubscriptionController }

@@ -1,5 +1,4 @@
-import { register , resendOtp, verifyOtp, setPassword, updatePassword, dashboard} from "./user.service.js";
-
+import { register , resendOtp, verifyOtp, setPassword, updatePassword, dashboard, forgotPassword, resetPassword} from "./user.service.js";
 
     const registration= async(req,res)=>{
         const body = req.body;
@@ -85,12 +84,20 @@ import { register , resendOtp, verifyOtp, setPassword, updatePassword, dashboard
         if (!req.user || !req.user.UserId) {
             return res.status(401).json({ message: 'Unauthorized' });
         }
+        let message;
         const userId = req.user.UserId;
         try {
-            const result = await dashboard(userId, res);
+            const result = await dashboard(userId);
+            if (!result.transaction.id){
+                message = "There is no active subscription"
+            }else {
+                message = "Subscription is active"
+            }
             res.status(200).json({
                 data: result,
+                message : message
             }) 
+    
         } catch (error) {
             res.status(201).json({
                 message: error.message,
@@ -98,5 +105,35 @@ import { register , resendOtp, verifyOtp, setPassword, updatePassword, dashboard
         }
     }
 
-    export { registration, resendOTPController, verifyOTPController, setPasswordController, updatePasswordController, dashboardController};
+    const forgotPasswordController = async (req, res) =>{
+        const email = req.body.email;
+        try {
+            await forgotPassword (email);
+            res.status(200).json({
+                message : "Token to reset your password has sent to your email"
+            })
+        } catch (error) {
+            res.status(201).json({
+                message: error.message,
+            });
+        }
+    }
+
+    const resetPasswordController = async (req, res)=>{
+        const token = req.body.token;
+        const newPassword = req.body.newPassword;
+        const confirmPassword = req.body.confirmPassword;
+        try {
+            await resetPassword (token, newPassword, confirmPassword);
+            res.status(200).json({
+                message : "Your password is successfully updated"
+            })
+        } catch (error) {
+            res.status(201).json({
+                message: error.message,
+            });
+        }
+    }
+
+    export { registration, resendOTPController, verifyOTPController, setPasswordController, updatePasswordController, dashboardController, forgotPasswordController, resetPasswordController};
 
